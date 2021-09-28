@@ -1,0 +1,57 @@
+---
+title: "p8105_hw1_zyt1102"
+author: "zyt1102"
+date: "2021/9/28"
+output: html_document
+---
+
+Problem 1
+```{r}
+library(tidyr)
+problem1_df = tibble(
+  x = rnorm(10),
+  vec_logical = x>0,
+  vec_char = c("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"),
+  vec_factor = factor(c("red", "red", "blue", "blue", "yellow", "red", "red", "blue", "blue", "yellow"))
+)
+problem1_df
+```
+```{r}
+library(dplyr)
+mean(pull(problem1_df,x))
+mean(pull(problem1_df,vec_logical))
+mean(pull(problem1_df,vec_char))
+mean(pull(problem1_df,vec_factor))
+```
+The mean of a random sample and a logical vector works, but the mean of a character vector and a factor vector does not work. 
+
+```{r}
+as.numeric(pull(problem1_df,x))
+as.numeric(pull(problem1_df,vec_logical))
+as.numeric(pull(problem1_df,vec_char))
+as.numeric(pull(problem1_df,vec_factor))
+```
+```{r}
+as.numeric(pull(problem1_df,vec_logical)) * pull(problem1_df,x)
+            
+as.factor(pull(problem1_df,vec_logical)) * pull(problem1_df,x)
+```
+
+Problem 2
+```{r}
+library("palmerpenguins")
+data("penguins", package = "palmerpenguins")
+nrow(penguins)
+ncol(penguins)
+mean(as.numeric(pull(penguins, flipper_length_mm)), na.rm = TRUE)
+summary(penguins)
+```
+The penguins data set has 8 variables, including species, island, bill length, bill depth, flipper length, body mass, sex and study year. There are 8 colums and 344 rows in the data set. A key variable is the species, which consists of three "levels" including Adélie, Chinstrap and Gentoo. The bill length (mm), bill depth (mm), flipper length (mm) and body mass (g) are all numeric values. The mean flipper length is 200.9152 mm.
+
+```{r}
+# Making a scatter plot of flipper length on the y axis and bill length on the x axis.
+library(ggplot2)
+ggplot(penguins, aes(x = bill_length_mm, y = flipper_length_mm, color = species)) + geom_point()
+ggsave("scatter_plot.pdf", height = 6, width = 4)
+```
+
