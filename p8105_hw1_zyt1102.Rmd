@@ -12,7 +12,7 @@ problem1_df = tibble(
   x = rnorm(10),
   vec_logical = x>0,
   vec_char = c("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"),
-  vec_factor = factor(c("red", "red", "blue", "blue", "yellow", "red", "red", "blue", "blue", "yellow"))
+  vec_factor = factor(c("low","low", "low", "medium", "medium", "medium", "medium", "high","high","high"))
 )
 problem1_df
 ```
