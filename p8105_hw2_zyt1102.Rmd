@@ -1,0 +1,187 @@
+---
+title: "Homework 2"
+output: html_document
+---
+
+### Problem 1
+```{r}
+rm(list = ls(all.names = TRUE))
+# read the [Mr. Trash Wheel](./dataset_mr_trash_wheel.html) dataset
+library(readxl)
+Trash=read_xlsx('/Users/liaojiangrui/Desktop/大地的盐/Trash-Wheel-Collection-Totals-7-2020-2.xlsx',sheet = "Mr. Trash Wheel",skip=1)  # specify the sheet in the Excel file & omit non-data entries (rows with notes / figures)
+
+Trash=subset(Trash, select=-c(15,16,17)) # omit non-data entries (columns containing notes)
+
+Trash=na.omit(Trash) # omit rows that do not include dumpster-specific data
+
+library(tidyverse)
+library(magrittr)
+colnames(Trash) %<>% str_replace_all("\\s" ,"_") %<>% tolower() # \ use reasonable variable names 
+
+glimpse(Trash)
+
+Trash$sports_balls=round(Trash$sports_balls, digits=0) # round the number of sports balls to the nearest integer
+```
+
+
+```{r}
+# Read and clean precipitation data for 2018 and 2019
+library(readxl)
+precipation18=read_xlsx('/Users/liaojiangrui/Desktop/大地的盐/Trash-Wheel-Collection-Totals-7-2020-2.xlsx',sheet = "2018 Precipitation",skip=1)  
+precipation19=read_xlsx('/Users/liaojiangrui/Desktop/大地的盐/Trash-Wheel-Collection-Totals-7-2020-2.xlsx',sheet = "2019 Precipitation",skip=1) 
+
+# omit rows without precipitation data
+precipation18=na.omit(precipation18)
+precipation19=na.omit(precipation19)
+# add a variable for year
+precipation18$year=2018
+precipation19$year=2019
+# combine precipitation datasets 
+library(dplyr)
+precipation1819=bind_rows(precipation18,precipation19)
+# convert month to a character variable 
+precipation1819$Month=month.name[precipation1819$Month]
+
+sum(precipation18$Total)
+summary(Trash$sports_balls[Trash$year=='2019'])
+```
+
+In summary, the total precipitation in 2018 is 70.33, and the median number of sports balls in a dumpster in 2019 is 10.03.
+
+# Problem 2
+
+# clean the data in pols-month.csv
+```{r}
+library(tidyverse)
+library(janitor)
+pols_month_df=read.csv('/Users/liaojiangrui/Desktop/大地的盐/pols-month.csv') %>%
+  janitor::clean_names() %>% 
+  separate(mon, into = c("year", "month", "day")) %>% view
+
+  month_df = 
+	tibble(
+		month = c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"),
+		month_name = month.abb
+	)
+  
+pols_tidy_df = 
+	left_join(pols_month_df, month_df, by = "month") %>% 
+  relocate(month_name, prez_gop, prez_dem) %>% 
+  mutate(prez_gop = na_if(prez_gop, 0), prez_dem = na_if(prez_dem, 0)) %>%
+    pivot_longer(
+    prez_gop:prez_dem,
+    names_to = "president",
+    values_to = "president_value") %>%
+  mutate(president = recode(president, `prez_gop` = 'gop', `prez_dem` = 'dem')) %>% 
+  drop_na(president_value) %>%
+  arrange(year, month) %>% 
+  select(-president_value, -month, -day) %>%
+  rename(month = month_name) %>% 
+  relocate(year, month) %>% 
+  view()
+
+```
+
+# Cleaning and tidying the snp.csv dataset.
+```{r}
+snp_df = 
+  read_csv("/Users/liaojiangrui/Desktop/大地的盐/snp.csv") %>% 
+  janitor::clean_names() %>% 
+  separate(date, into = c("month", "day", "year")) %>%
+  view
+month2_df = 
+	tibble(
+		month = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"),
+		month_name = month.abb
+	)
+snp_tidy_df = 
+	left_join(snp_df, month2_df, by = "month") %>%
+  arrange(year, month) %>% 
+  select(-month, -day) %>% 
+  rename(month = month_name) %>%  
+  relocate(year, month) %>% 
+  view
+```
+
+# Cleaning up and tidying unemployment dataset.
+```{r}
+unemployment_tidy_df =
+  read_csv("/Users/liaojiangrui/Desktop/大地的盐/unemployment.csv", col_types = cols(
+    Year = col_character()
+    )) %>%
+  pivot_longer(
+    Jan:Dec,
+    names_to = "month",
+    values_to = "unemployment") %>%
+  rename(year = Year) %>% 
+  view
+```
+
+Merging datasets
+```{r}
+snp_pols_df = 
+  left_join(pols_tidy_df, snp_tidy_df, by = c("year" = "year", "month" = "month")) %>% view
+FiveThirtyEight_df = 
+  left_join(snp_pols_df, unemployment_tidy_df, by = c("year" = "year", "month" = "month")) %>% view
+```
+
+The pols-month dataset contains information on the political landscape of the US, including the number of national politicians who are democratic or republican at the presidential, governor, and senate level at a particular date.I separated the 'month' date into year, month and day variables, keeping only year and month for dataset consistency. Then I converted the month bumbers into their abbreviated month names. 
+
+The snp dataset contains information on the closing vales of the S&P stock index on the associated month and year. The data wrangling process was similar to that in the pols-month dataset. 
+
+The unemployment data set contains information on the unemployment percentage of a particular month in a year.I transformed the months columns (Jan-Dec) into rows using _pivot_longer_ to keep consistency and get only unemployment and year and month.
+
+The final dataset, FiveThirtyEight_df is the merge of previous 3 datasets by year and by month, containing information on the political landscape, stock performance, and unemployment percentages for a particular month and year. 
+
+
+# Proeblem 3
+```{r}
+baby_name = read_csv(file = "/Users/liaojiangrui/Desktop/大地的盐/Popular_Baby_Names.csv") %>%
+ janitor::clean_names() %>%
+    mutate(
+    childs_first_name = str_to_upper(childs_first_name),
+    ethnicity = recode(ethnicity,
+  "BLACK NON HISP" = "BLACK NON HISPANIC", 
+  "WHITE NON HISP" = "WHITE NON HISPANIC", 
+  "ASIAN AND PACI" = "ASIAN AND PACIFIC ISLANDER")) %>%
+  distinct(childs_first_name, ethnicity, year_of_birth, count, rank, gender) 
+```
+
+# filter data to only observe babies named Olivia and rank over time
+```{r}
+olivia_baby =
+  filter(baby_name, childs_first_name == "OLIVIA") %>%
+    select(-count) %>%
+    pivot_wider(
+    names_from = "year_of_birth", 
+    values_from = "rank") %>%
+  select(-childs_first_name, -gender) %>%
+  view
+```
+
+# filter data to observe male children name rank over time
+```{r}
+male_baby = 
+  filter(baby_name, gender == "MALE", rank == "1") %>%
+  select(-count, -rank, -gender) %>%
+    pivot_wider(
+    names_from = "year_of_birth", 
+    values_from = "childs_first_name") %>%
+  view
+```
+
+# create a new data frame to observe a certain population of males to use in scatterplot below. 
+```{r}
+male_plot_df = 
+  filter(baby_name, 
+         gender == "MALE", 
+         ethnicity == "WHITE NON HISPANIC", 
+         year_of_birth == "2016")
+  
+male_plot = 
+  ggplot(male_plot_df, aes(x = rank, y = count)) +
+  geom_point()
+ 
+male_plot
+```
+
